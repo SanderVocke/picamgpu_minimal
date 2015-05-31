@@ -1,6 +1,4 @@
 #include "cam.h"
-#include "common.h"
-#include "graphics.h"
 
 #include "bcm_host.h"
 #include "interface/vcos/vcos.h"
@@ -63,7 +61,7 @@ MMAL_POOL_T *video_pool = NULL;
 
 RASPICAM_CAMERA_PARAMETERS cameraParameters;
 
-GfxTexture cam_ytex, cam_utex, cam_vtex;
+GLuint cam_ytex, cam_utex, cam_vtex;
 EGLImageKHR yimg = EGL_NO_IMAGE_KHR;
 EGLImageKHR uimg = EGL_NO_IMAGE_KHR;
 EGLImageKHR vimg = EGL_NO_IMAGE_KHR;
@@ -76,9 +74,9 @@ bool camera_read_frame(void){
 	
 		//mmal_buffer_header_mem_lock(buf);
 		
-		//DBG("Buffer received with length %d", buf->length);
+		//printf("Buffer received with length %d\n", buf->length);
 	
-		glBindTexture(GL_TEXTURE_EXTERNAL_OES, cam_ytex.Id);
+		glBindTexture(GL_TEXTURE_EXTERNAL_OES, cam_ytex);
 		check();
 		if(yimg != EGL_NO_IMAGE_KHR){
 			eglDestroyImageKHR(GDisplay, yimg);
@@ -93,7 +91,7 @@ bool camera_read_frame(void){
 		glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, yimg);
 		check();
 		
-		glBindTexture(GL_TEXTURE_EXTERNAL_OES, cam_utex.Id);
+		glBindTexture(GL_TEXTURE_EXTERNAL_OES, cam_utex);
 		check();
 		if(uimg != EGL_NO_IMAGE_KHR){
 			eglDestroyImageKHR(GDisplay, uimg);
@@ -108,7 +106,7 @@ bool camera_read_frame(void){
 		glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, uimg);
 		check();
 		
-		glBindTexture(GL_TEXTURE_EXTERNAL_OES, cam_vtex.Id);
+		glBindTexture(GL_TEXTURE_EXTERNAL_OES, cam_vtex);
 		check();
 		if(vimg != EGL_NO_IMAGE_KHR){
 			eglDestroyImageKHR(GDisplay, vimg);
@@ -133,7 +131,7 @@ bool camera_read_frame(void){
 			if (new_buffer)
 				status = mmal_port_send_buffer(preview_port, new_buffer);
 			if (!new_buffer || status != MMAL_SUCCESS)
-				DBG("Unable to return a buffer to the video port\n");
+				printf("Unable to return a buffer to the video port\n\n");
 		}
 		
 		return true;
@@ -152,13 +150,13 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	status = mmal_component_create(MMAL_COMPONENT_DEFAULT_CAMERA, &camera);
 
 	if (status != MMAL_SUCCESS)	{
-		DBG("Failed to create camera component : error %d", status);
+		printf("Failed to create camera component : error %d\n", status);
 		exit(1);
 	}
 
 	if (!camera->output_num)	{
 		status = MMAL_ENOSYS;
-		DBG("Camera doesn't have output ports");
+		printf("Camera doesn't have output ports\n");
 		exit(1);
 	}
 
@@ -169,14 +167,14 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	// Enable the camera, and tell it its control callback function
 	status = mmal_port_enable(camera->control, camera_control_callback);
 	if (status != MMAL_SUCCESS)	{
-		DBG("Unable to enable control port : error %d", status);
+		printf("Unable to enable control port : error %d\n", status);
 		mmal_component_destroy(camera);
 		exit(1);
 	}
 	
 	//set camera parameters.
 	MMAL_PARAMETER_CAMERA_CONFIG_T cam_config;
-	cam_config.hdr.id = MMAL_PARAMETER_CAMERA_CONFIG;
+	cam_config.hdr = MMAL_PARAMETER_CAMERA_CONFIG;
 	cam_config.hdr.size = sizeof(cam_config);
 	cam_config.max_stills_w = Width;
 	cam_config.max_stills_h = Height;
@@ -191,7 +189,7 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	status = mmal_port_parameter_set(camera->control, &cam_config.hdr);
 
 	if (status != MMAL_SUCCESS)	{
-		DBG("Unable to set camera parameters : error %d", status);
+		printf("Unable to set camera parameters : error %d\n", status);
 		mmal_component_destroy(camera);
 		exit(1);
 	}
@@ -211,7 +209,7 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	status = mmal_port_format_commit(preview_port);
 	if (status != MMAL_SUCCESS)
 	{
-		DBG("Couldn't set preview port format : error %d", status);
+		printf("Couldn't set preview port format : error %d\n", status);
 		mmal_component_destroy(camera);
 		exit(1);
 	}
@@ -231,7 +229,7 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	status = mmal_port_format_commit(video_port);
 	if (status != MMAL_SUCCESS)
 	{
-		DBG("Couldn't set video port format : error %d", status);
+		printf("Couldn't set video port format : error %d\n", status);
 		mmal_component_destroy(camera);
 		exit(1);
 	}
@@ -251,7 +249,7 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	status = mmal_port_format_commit(still_port);
 	if (status != MMAL_SUCCESS)
 	{
-		DBG("Couldn't set still port format : error %d", status);
+		printf("Couldn't set still port format : error %d\n", status);
 		mmal_component_destroy(camera);
 		exit(1);
 	}
@@ -260,14 +258,14 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	MMAL_PARAMETER_ZERO_COPY, MMAL_TRUE);
 	if (status != MMAL_SUCCESS)
 	{
-		DBG("Failed to enable zero copy on camera video port");
+		printf("Failed to enable zero copy on camera video port\n");
 		exit(1);
 	}
 	
 	status = mmal_port_format_commit(preview_port);
 	if (status != MMAL_SUCCESS)
 	{
-		DBG("camera format couldn't be set");
+		printf("camera format couldn't be set\n");
 		exit(1);
 	}
 	
@@ -281,17 +279,17 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	video_pool = mmal_port_pool_create(preview_port,preview_port->buffer_num,preview_port->buffer_size);
 	if (!video_pool)
 	{
-		DBG("Error allocating camera video pool. Buffer num: %d Buffer size: %d", preview_port->buffer_num, preview_port->buffer_size);
+		printf("Error allocating camera video pool. Buffer num: %d Buffer size: %d\n", preview_port->buffer_num, preview_port->buffer_size);
 		status = MMAL_ENOMEM;
 		exit(1);
 	}
-	DBG("Allocated %d MMAL buffers of size %d.", preview_port->buffer_num, preview_port->buffer_size);
+	printf("Allocated %d MMAL buffers of size %d.\n", preview_port->buffer_num, preview_port->buffer_size);
 
 	/* Place filled buffers from the preview port in a queue to render */
 	video_queue = mmal_queue_create();
 	if (!video_queue)
 	{
-		DBG("Error allocating video buffer queue");
+		printf("Error allocating video buffer queue\n");
 		status = MMAL_ENOMEM;
 		exit(1);
 	}
@@ -301,7 +299,7 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	status = mmal_port_enable(preview_port, video_output_callback);
 	if (status != MMAL_SUCCESS)
 	{
-		DBG("Failed to enable video port");
+		printf("Failed to enable video port\n");
 		exit(1);
 	}
 	
@@ -314,7 +312,7 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	status = mmal_component_enable(camera);
 	if (status != MMAL_SUCCESS)
 	{
-		DBG("Couldn't enable camera\n");
+		printf("Couldn't enable camera\n\n");
 		mmal_component_destroy(camera);
 		exit(1);
 	}
@@ -328,12 +326,12 @@ void create_camera_component(int Width, int Height, int FrameRate){
 			MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(video_pool->queue);
 			if (!buffer)
 			{
-				DBG("Unable to get a required buffer %d from pool queue\n", q);
+				printf("Unable to get a required buffer %d from pool queue\n\n", q);
 				exit(1);
 			}
 			else if (mmal_port_send_buffer(preview_port, buffer)!= MMAL_SUCCESS)
 			{
-				DBG("Unable to send a buffer to port (%d)\n", q);
+				printf("Unable to send a buffer to port (%d)\n\n", q);
 				exit(1);
 			}
 		}
@@ -343,31 +341,25 @@ void create_camera_component(int Width, int Height, int FrameRate){
 	//begin capture
 	if (mmal_port_parameter_set_boolean(preview_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
 	{
-		DBG("Failed to start capture\n");
+		printf("Failed to start capture\n\n");
 		exit(1);
 	}
 	*/
 	
-	DBG("Camera initialized.");
+	printf("Camera initialized.\n");
 	
 	
 	
 	//Setup the camera's textures and EGL images.
-	glGenTextures(1, &cam_ytex.Id);
-	glGenTextures(1, &cam_utex.Id);
-	glGenTextures(1, &cam_vtex.Id);
-	cam_ytex.Width = cam_ytex.Height = 1024;
-	cam_utex.Width = cam_utex.Height = 1024;
-	cam_vtex.Width = cam_vtex.Height = 1024;
-	cam_ytex.IsRGBA = false;
-	cam_utex.IsRGBA = false;
-	cam_vtex.IsRGBA = false;
+	glGenTextures(1, &cam_ytex);
+	glGenTextures(1, &cam_utex);
+	glGenTextures(1, &cam_vtex);
 	
 	return;
 }
 
 void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer){
-	DBG("Camera control callback\n");
+	printf("Camera control callback\n\n");
 	return;
 }
 
@@ -386,7 +378,7 @@ void video_output_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer){
 				if (new_buffer)
 				status = mmal_port_send_buffer(port, new_buffer);
 				if (!new_buffer || status != MMAL_SUCCESS)
-				DBG("Unable to return a buffer to the video port\n");
+				printf("Unable to return a buffer to the video port\n\n");
 			}	
 		}
 	}
@@ -394,7 +386,7 @@ void video_output_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer){
 	//add the buffer to the output queue
 	mmal_queue_put(video_queue,buffer);
 
-	//DBG("Video buffer callback, output queue len=%d\n", mmal_queue_length(OutputQueue));
+	//printf("Video buffer callback, output queue len=%d\n\n", mmal_queue_length(OutputQueue));
 }
 
 void camera_release()

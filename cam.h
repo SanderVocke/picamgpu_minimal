@@ -11,7 +11,7 @@
 
 #include "graphics.h"
 
-extern GfxTexture cam_ytex, cam_utex, cam_vtex;
+extern GLuint cam_ytex, cam_utex, cam_vtex;
 
 void create_camera_component(int Width, int Height, int Framerate);
 void camera_release();
